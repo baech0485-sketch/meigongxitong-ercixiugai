@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Send, ArrowRight } from 'lucide-react';
+import { Send, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Header } from '@/components/Header';
 import { ImageTypeSelector } from '@/components/ImageTypeSelector';
 import { PlatformSelector } from '@/components/PlatformSelector';
@@ -11,7 +10,7 @@ import { ImageUploader } from '@/components/ImageUploader';
 import { DescriptionInput } from '@/components/DescriptionInput';
 import { ResultDisplay } from '@/components/ResultDisplay';
 import type { ImageType, Platform } from '@/types';
-import { IMAGE_SIZES, IMAGE_TYPE_LABELS, PLATFORM_LABELS } from '@/types';
+import { IMAGE_SIZES } from '@/types';
 import { generateImage } from '@/lib/api';
 
 export default function Home() {
@@ -78,7 +77,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/20">
       <Header />
 
       {/* Main Content */}
@@ -86,7 +85,7 @@ export default function Home() {
         <div className="grid gap-8 lg:grid-cols-[1fr,400px]">
           {/* Left Column - Form */}
           <div className="space-y-6">
-            <Card className="border-2 border-border bg-card p-6">
+            <div className="glass-card rounded-3xl p-6 shadow-xl sm:p-8">
               <div className="space-y-8">
                 {/* Image Type Selection */}
                 <ImageTypeSelector value={imageType} onChange={setImageType} />
@@ -96,14 +95,14 @@ export default function Home() {
 
                 {/* Size Preview */}
                 {imageType && platform && (
-                  <div className="rounded-lg bg-secondary/50 p-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">输出尺寸：</span>
-                      <span className="font-mono font-medium text-foreground">
-                        {IMAGE_SIZES[imageType][platform].width} x{' '}
-                        {IMAGE_SIZES[imageType][platform].height} px
-                      </span>
+                  <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-secondary/50 to-secondary/30 p-4">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium text-muted-foreground">输出尺寸</span>
                     </div>
+                    <span className="rounded-lg bg-background/80 px-3 py-1.5 font-mono text-sm font-semibold text-foreground shadow-sm">
+                      {IMAGE_SIZES[imageType][platform].width} × {IMAGE_SIZES[imageType][platform].height} px
+                    </span>
                   </div>
                 )}
 
@@ -131,7 +130,7 @@ export default function Home() {
                 <Button
                   onClick={handleSubmit}
                   disabled={!canSubmit || isLoading}
-                  className="w-full gap-2 bg-primary py-6 text-lg font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 disabled:opacity-50"
+                  className="group w-full gap-3 bg-gradient-to-r from-primary to-accent py-7 text-lg font-bold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 disabled:opacity-50"
                 >
                   {isLoading ? (
                     <>
@@ -142,17 +141,17 @@ export default function Home() {
                     <>
                       <Send className="h-5 w-5" />
                       发送请求
-                      <ArrowRight className="ml-1 h-4 w-4" />
+                      <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                     </>
                   )}
                 </Button>
               </div>
-            </Card>
+            </div>
           </div>
 
           {/* Right Column - Result */}
-          <div className="lg:sticky lg:top-8 lg:self-start">
-            <Card className="border-2 border-border bg-card p-6">
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            <div className="glass-card rounded-3xl p-6 shadow-xl">
               <ResultDisplay
                 resultImage={resultImage}
                 isLoading={isLoading}
@@ -161,20 +160,25 @@ export default function Home() {
                 platform={platform}
                 onRetry={handleRetry}
               />
-            </Card>
+            </div>
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card/30 py-6">
+      <footer className="mt-12 border-t border-border/50 bg-gradient-to-b from-card/30 to-background py-8">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm font-medium text-muted-foreground">
               美工图片二次调整系统 - AI 智能处理工具
             </p>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span>支持平台：美团 / 淘宝闪购</span>
+            <div className="flex items-center gap-3">
+              <span className="rounded-full bg-meituan/10 px-3 py-1 text-xs font-medium text-meituan">
+                美团
+              </span>
+              <span className="rounded-full bg-taobao/10 px-3 py-1 text-xs font-medium text-taobao">
+                淘宝闪购
+              </span>
             </div>
           </div>
         </div>
