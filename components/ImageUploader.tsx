@@ -2,9 +2,10 @@
 
 import React from "react"
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Upload, X, Clipboard, ImagePlus, ZoomIn } from 'lucide-react';
+import { Upload, X, Clipboard, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { compressImage } from '@/lib/imageCompressor';
 
 interface ImageUploaderProps {
   label: string;
@@ -22,6 +23,7 @@ export function ImageUploader({
   onImageChange,
 }: ImageUploaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   const handleFileChange = useCallback(
     async (file: File) => {
@@ -30,11 +32,36 @@ export function ImageUploader({
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        onImageChange(file, reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setIsCompressing(true);
+      try {
+        // 压缩图片（目标500KB以内）
+        const compressedFile = await compressImage(file, {
+          maxWidth: 1920,
+          maxHeight: 1920,
+          quality: 0.8,
+          maxSizeKB: 500,
+        });
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          onImageChange(compressedFile, reader.result as string);
+          setIsCompressing(false);
+        };
+        reader.onerror = () => {
+          setIsCompressing(false);
+          alert('图片读取失败');
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (error) {
+        setIsCompressing(false);
+        console.error('压缩失败:', error);
+        // 压缩失败时使用原图
+        const reader = new FileReader();
+        reader.onload = () => {
+          onImageChange(file, reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
     },
     [onImageChange]
   );
@@ -101,14 +128,18 @@ export function ImageUploader({
         )}
       </div>
 
-      {preview ? (
+      {isCompressing ? (
+        <div className="flex h-52 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-primary/30 bg-card">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm font-medium text-muted-foreground">正在压缩图片...</p>
+        </div>
+      ) : preview ? (
         <div className="group relative overflow-hidden rounded-2xl border-2 border-primary/30 bg-card shadow-lg">
           <img
             src={preview || "/placeholder.svg"}
             alt="Preview"
             className="h-52 w-full object-contain p-3 transition-transform duration-300 group-hover:scale-105"
           />
-          {/* 悬停遮罩 */}
           <div className="absolute inset-0 flex items-center justify-center gap-3 bg-background/90 opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100">
             <Button
               variant="destructive"
@@ -120,13 +151,11 @@ export function ImageUploader({
               移除
             </Button>
           </div>
-          {/* 文件名标签 */}
           <div className="absolute bottom-3 left-3 right-3">
             <p className="truncate rounded-xl bg-background/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
               {image?.name}
             </p>
           </div>
-          {/* 成功指示器 */}
           <div className="absolute right-3 top-3">
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 shadow-lg">
               <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -149,7 +178,6 @@ export function ImageUploader({
             onChange={handleInputChange}
             className="absolute inset-0 cursor-pointer opacity-0"
           />
-          {/* 图标组 */}
           <div className="flex gap-3">
             <div className="rounded-xl bg-secondary p-3 transition-all duration-300 group-hover:-translate-y-1 group-hover:bg-primary/15 group-hover:shadow-md">
               <Upload className="h-6 w-6 text-muted-foreground transition-colors group-hover:text-primary" />
@@ -158,13 +186,12 @@ export function ImageUploader({
               <Clipboard className="h-6 w-6 text-muted-foreground transition-colors group-hover:text-primary" />
             </div>
           </div>
-          {/* 提示文字 */}
           <div className="text-center">
             <p className="text-sm font-semibold text-foreground">
               点击上传或 Ctrl+V 粘贴
             </p>
             <p className="mt-1.5 text-xs text-muted-foreground">
-              支持 JPG, PNG, WebP 格式
+              支持 JPG, PNG, WebP（自动压缩）
             </p>
           </div>
         </div>
