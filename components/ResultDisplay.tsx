@@ -1,9 +1,11 @@
 'use client';
 
-import { Download, RefreshCw, CheckCircle, ImageIcon, AlertCircle, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { Download, RefreshCw, CheckCircle, ImageIcon, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ImageType, Platform } from '@/types';
 import { IMAGE_SIZES, IMAGE_TYPE_LABELS, PLATFORM_LABELS } from '@/types';
+import { downloadCanvasAsImage } from '@/lib/downloadHelper';
 
 interface ResultDisplayProps {
   resultImage: string | null;
@@ -22,40 +24,40 @@ export function ResultDisplay({
   platform,
   onRetry,
 }: ResultDisplayProps) {
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const handleDownload = async () => {
     if (!resultImage || !imageType || !platform) return;
 
+    setIsDownloading(true);
     const size = IMAGE_SIZES[imageType][platform];
 
-    // Create canvas for resizing
     const img = new window.Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => {
+    img.onload = async () => {
       const canvas = document.createElement('canvas');
       canvas.width = size.width;
       canvas.height = size.height;
       const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      if (!ctx) {
+        setIsDownloading(false);
+        return;
+      }
 
-      // 填充白色背景（JPG不支持透明）
+      // 填充白色背景
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, size.width, size.height);
-
       ctx.drawImage(img, 0, 0, size.width, size.height);
 
-      // 输出为JPG格式，质量0.92
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const timestamp = Date.now();
-        a.download = `${imageType}_${platform}_${timestamp}.jpg`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 'image/jpeg', 0.92);
+      // 使用兼容 Web/Tauri 的下载函数
+      const timestamp = Date.now();
+      const filename = `${imageType}_${platform}_${timestamp}.jpg`;
+      await downloadCanvasAsImage(canvas, filename, 'image/jpeg', 0.92);
+      setIsDownloading(false);
+    };
+    img.onerror = () => {
+      setIsDownloading(false);
+      alert('图片加载失败');
     };
     img.src = resultImage;
   };
@@ -154,10 +156,20 @@ export function ResultDisplay({
         </div>
         <Button
           onClick={handleDownload}
-          className="w-full gap-2 bg-gradient-to-r from-primary to-accent py-5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30"
+          disabled={isDownloading}
+          className="w-full gap-2 bg-gradient-to-r from-primary to-accent py-5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 disabled:opacity-70"
         >
-          <Download className="h-5 w-5" />
-          下载图片
+          {isDownloading ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              下载中...
+            </>
+          ) : (
+            <>
+              <Download className="h-5 w-5" />
+              下载图片
+            </>
+          )}
         </Button>
       </div>
     );
