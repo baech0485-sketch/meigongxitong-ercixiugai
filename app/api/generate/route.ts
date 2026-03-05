@@ -50,12 +50,31 @@ function parseStreamResponse(responseText: string): { image: string; mimeType: s
   }
 }
 
-// API配置
-const API_URL = process.env.YUNWU_API_URL || 'https://yunwu.ai';
-const API_KEY = process.env.YUNWU_API_KEY || '';
+// 模型配置
+type ModelKey = 'model1' | 'model2';
+
+interface ModelConfig {
+  apiUrl: string;
+  apiKey: string;
+  model: string;
+}
+
+const MODEL_CONFIGS: Record<ModelKey, ModelConfig> = {
+  model1: {
+    apiUrl: process.env.YUNWU_API_URL || 'https://yunwu.ai',
+    apiKey: process.env.YUNWU_API_KEY || '',
+    model: process.env.YUNWU_MODEL || 'gemini-3.1-flash-image-preview',
+  },
+  model2: {
+    apiUrl: process.env.VECTORENGINE_API_URL || 'https://api.vectorengine.ai',
+    apiKey: process.env.VECTORENGINE_API_KEY || '',
+    model: process.env.VECTORENGINE_MODEL || 'gemini-3.1-flash-image-preview',
+  },
+};
 
 // 请求体类型
 interface GenerateRequest {
+  selectedModel?: ModelKey;
   imageType: 'product' | 'avatar' | 'banner' | 'poster';
   platform: 'meituan' | 'taobao';
   originalImage: string;
@@ -77,6 +96,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
   try {
     const body: GenerateRequest = await request.json();
     const { originalImage, referenceImage, description } = body;
+    const modelKey: ModelKey = body.selectedModel === 'model2' ? 'model2' : 'model1';
+    const modelConfig = MODEL_CONFIGS[modelKey];
+
+    if (!modelConfig.apiKey) {
+      return NextResponse.json(
+        { success: false, error: '模型配置缺少 API Key，请检查环境变量' },
+        { status: 500 }
+      );
+    }
 
     // 验证必填字段
     if (!originalImage) {
@@ -124,7 +152,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
     };
 
     // 调用云雾API
-    const endpoint = `${API_URL}/v1beta/models/gemini-3.1-flash-image-preview:streamGenerateContent?key=${API_KEY}`;
+    const endpoint = `${modelConfig.apiUrl}/v1beta/models/${modelConfig.model}:streamGenerateContent?key=${modelConfig.apiKey}`;
 
     const apiResponse = await fetch(endpoint, {
       method: 'POST',

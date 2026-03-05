@@ -6,15 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Header } from '@/components/Header';
 import { ImageTypeSelector } from '@/components/ImageTypeSelector';
+import { ModelSelector } from '@/components/ModelSelector';
 import { PlatformSelector } from '@/components/PlatformSelector';
 import { ImageUploader } from '@/components/ImageUploader';
 import { DescriptionInput } from '@/components/DescriptionInput';
 import { ResultDisplay } from '@/components/ResultDisplay';
-import type { ImageType, Platform } from '@/types';
-import { IMAGE_SIZES, IMAGE_TYPE_LABELS, PLATFORM_LABELS } from '@/types';
+import type { ImageType, ModelKey, Platform } from '@/types';
+import { IMAGE_SIZES } from '@/types';
 import { generateImage } from '@/lib/api';
 
 export default function Home() {
+  const [selectedModel, setSelectedModel] = useState<ModelKey>('model1');
   const [imageType, setImageType] = useState<ImageType | null>(null);
   const [platform, setPlatform] = useState<Platform | null>(null);
   const [originalImage, setOriginalImage] = useState<File | null>(null);
@@ -53,6 +55,7 @@ export default function Home() {
 
     try {
       const response = await generateImage({
+        selectedModel,
         imageType,
         platform,
         originalImage: originalImagePreview,
@@ -88,6 +91,9 @@ export default function Home() {
           <div className="space-y-6">
             <Card className="border-2 border-border bg-card p-6">
               <div className="space-y-8">
+                {/* Model Selection */}
+                <ModelSelector value={selectedModel} onChange={setSelectedModel} />
+
                 {/* Image Type Selection */}
                 <ImageTypeSelector value={imageType} onChange={setImageType} />
 

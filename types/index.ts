@@ -1,9 +1,11 @@
 export type ImageType = 'product' | 'avatar' | 'banner' | 'poster';
 export type Platform = 'meituan' | 'taobao';
+export type ModelKey = 'model1' | 'model2';
 
 export interface AppState {
   imageType: ImageType | null;
   platform: Platform | null;
+  selectedModel: ModelKey;
   originalImage: File | null;
   originalImagePreview: string | null;
   referenceImage: File | null;
@@ -43,4 +45,9 @@ export const IMAGE_TYPE_LABELS: Record<ImageType, string> = {
 export const PLATFORM_LABELS: Record<Platform, string> = {
   meituan: '美团',
   taobao: '淘宝闪购',
+};
+
+export const MODEL_LABELS: Record<ModelKey, string> = {
+  model1: '模型1（云雾）',
+  model2: '模型2（VectorEngine）',
 };

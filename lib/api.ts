@@ -1,6 +1,8 @@
 // API调用封装
+import type { ModelKey } from '@/types';
 
 export interface GenerateRequest {
+  selectedModel: ModelKey;
   imageType: 'product' | 'avatar' | 'banner' | 'poster';
   platform: 'meituan' | 'taobao';
   originalImage: string;
