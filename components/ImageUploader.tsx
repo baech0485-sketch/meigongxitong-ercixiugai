@@ -34,7 +34,6 @@ export function ImageUploader({
 
       setIsCompressing(true);
       try {
-        // 压缩图片（目标500KB以内）
         const compressedFile = await compressImage(file, {
           maxWidth: 1920,
           maxHeight: 1920,
@@ -55,7 +54,6 @@ export function ImageUploader({
       } catch (error) {
         setIsCompressing(false);
         console.error('压缩失败:', error);
-        // 压缩失败时使用原图
         const reader = new FileReader();
         reader.onload = () => {
           onImageChange(file, reader.result as string);
@@ -66,7 +64,6 @@ export function ImageUploader({
     [onImageChange]
   );
 
-  // 处理粘贴事件
   const handlePaste = useCallback(
     (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
@@ -97,10 +94,8 @@ export function ImageUploader({
     onImageChange(null, null);
   }, [onImageChange]);
 
-  // 监听全局粘贴事件
   useEffect(() => {
     const handleGlobalPaste = (e: ClipboardEvent) => {
-      // 检查容器是否获得焦点或鼠标悬停
       if (containerRef.current?.matches(':hover, :focus-within')) {
         handlePaste(e);
       }
@@ -115,61 +110,40 @@ export function ImageUploader({
   return (
     <div ref={containerRef} className="space-y-3" tabIndex={0}>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-foreground">{label}</span>
-        {required && (
-          <span className="rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
-            必填
-          </span>
-        )}
-        {!required && (
-          <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-            可选
-          </span>
-        )}
+        <span className="text-sm font-medium text-foreground">{label}</span>
+        {required && <span className="text-xs text-destructive">*必填</span>}
+        {!required && <span className="text-xs text-muted-foreground">可选</span>}
       </div>
 
       {isCompressing ? (
-        <div className="flex h-52 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-primary/30 bg-card">
+        <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-xl border-2 border-primary/30 bg-card">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm font-medium text-muted-foreground">正在压缩图片...</p>
+          <p className="text-sm text-muted-foreground">正在压缩图片...</p>
         </div>
       ) : preview ? (
-        <div className="group relative overflow-hidden rounded-2xl border-2 border-primary/30 bg-card shadow-lg">
+        <div className="group relative overflow-hidden rounded-xl border-2 border-primary/30 bg-card">
           <img
-            src={preview || "/placeholder.svg"}
+            src={preview}
             alt="Preview"
-            className="h-52 w-full object-contain p-3 transition-transform duration-300 group-hover:scale-105"
+            className="h-40 w-full object-contain p-2"
           />
-          <div className="absolute inset-0 flex items-center justify-center gap-3 bg-background/90 opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:opacity-100">
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleClear}
-              className="gap-2 shadow-lg"
-            >
-              <X className="h-4 w-4" />
+          <div className="absolute inset-0 flex items-center justify-center bg-background/80 opacity-0 transition-opacity group-hover:opacity-100">
+            <Button variant="destructive" size="sm" onClick={handleClear}>
+              <X className="mr-1 h-4 w-4" />
               移除
             </Button>
           </div>
-          <div className="absolute bottom-3 left-3 right-3">
-            <p className="truncate rounded-xl bg-background/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
+          <div className="absolute bottom-2 left-2 right-2">
+            <p className="truncate rounded bg-background/80 px-2 py-1 text-xs text-muted-foreground">
               {image?.name}
             </p>
-          </div>
-          <div className="absolute right-3 top-3">
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-500 shadow-lg">
-              <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
           </div>
         </div>
       ) : (
         <div
           className={cn(
-            'group relative flex h-52 cursor-pointer flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed transition-all duration-300',
-            'border-border bg-gradient-to-b from-card to-secondary/30',
-            'hover:border-primary/50 hover:bg-gradient-to-b hover:from-primary/5 hover:to-primary/10 hover:shadow-lg'
+            'group relative flex h-40 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed transition-all',
+            'border-border bg-card hover:border-primary/50 hover:bg-secondary/50'
           )}
         >
           <input
@@ -178,21 +152,13 @@ export function ImageUploader({
             onChange={handleInputChange}
             className="absolute inset-0 cursor-pointer opacity-0"
           />
-          <div className="flex gap-3">
-            <div className="rounded-xl bg-secondary p-3 transition-all duration-300 group-hover:-translate-y-1 group-hover:bg-primary/15 group-hover:shadow-md">
-              <Upload className="h-6 w-6 text-muted-foreground transition-colors group-hover:text-primary" />
-            </div>
-            <div className="rounded-xl bg-secondary p-3 transition-all duration-300 group-hover:-translate-y-1 group-hover:bg-primary/15 group-hover:shadow-md" style={{ transitionDelay: '50ms' }}>
-              <Clipboard className="h-6 w-6 text-muted-foreground transition-colors group-hover:text-primary" />
-            </div>
+          <div className="flex gap-2">
+            <Upload className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+            <Clipboard className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-semibold text-foreground">
-              点击上传或 Ctrl+V 粘贴
-            </p>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              支持 JPG, PNG, WebP（自动压缩）
-            </p>
+            <p className="text-sm font-medium text-foreground">点击上传或 Ctrl+V 粘贴</p>
+            <p className="text-xs text-muted-foreground">支持 JPG, PNG, WebP（自动压缩）</p>
           </div>
         </div>
       )}

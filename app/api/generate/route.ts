@@ -124,7 +124,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
     };
 
     // 调用云雾API
-    const endpoint = `${API_URL}/v1beta/models/gemini-3-pro-image-preview:streamGenerateContent?key=${API_KEY}`;
+    const endpoint = `${API_URL}/v1beta/models/gemini-3.1-flash-lite-preview:streamGenerateContent?key=${API_KEY}`;
 
     const apiResponse = await fetch(endpoint, {
       method: 'POST',
