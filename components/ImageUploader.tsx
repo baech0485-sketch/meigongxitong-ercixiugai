@@ -2,10 +2,10 @@
 
 import React from "react"
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Upload, X, Clipboard, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Image as ImageIcon, Images, Upload, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { compressImage } from '@/lib/imageCompressor';
+import { WorkbenchIconBadge } from '@/components/workbench-primitives';
 
 interface ImageUploaderProps {
   label: string;
@@ -23,7 +23,11 @@ export function ImageUploader({
   onImageChange,
 }: ImageUploaderProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [isPasteTarget, setIsPasteTarget] = useState(false);
+  const isReference = label.includes('参考');
+  const Icon = isReference ? Images : Upload;
 
   const handleFileChange = useCallback(
     async (file: File) => {
@@ -64,8 +68,26 @@ export function ImageUploader({
     [onImageChange]
   );
 
-  const handlePaste = useCallback(
-    (e: ClipboardEvent) => {
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) handleFileChange(file);
+      e.target.value = '';
+    },
+    [handleFileChange]
+  );
+
+  const handleClear = useCallback(() => {
+    onImageChange(null, null);
+  }, [onImageChange]);
+
+  const handleOpenFileDialog = useCallback(() => {
+    inputRef.current?.click();
+    containerRef.current?.focus();
+  }, []);
+
+  const handleContainerPaste = useCallback(
+    (e: ClipboardEvent | React.ClipboardEvent<HTMLDivElement>) => {
       const items = e.clipboardData?.items;
       if (!items) return;
 
@@ -73,6 +95,7 @@ export function ImageUploader({
         if (item.type.startsWith('image/')) {
           const file = item.getAsFile();
           if (file) {
+            e.preventDefault?.();
             handleFileChange(file);
             break;
           }
@@ -82,22 +105,10 @@ export function ImageUploader({
     [handleFileChange]
   );
 
-  const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) handleFileChange(file);
-    },
-    [handleFileChange]
-  );
-
-  const handleClear = useCallback(() => {
-    onImageChange(null, null);
-  }, [onImageChange]);
-
   useEffect(() => {
     const handleGlobalPaste = (e: ClipboardEvent) => {
-      if (containerRef.current?.matches(':hover, :focus-within')) {
-        handlePaste(e);
+      if (isPasteTarget) {
+        handleContainerPaste(e);
       }
     };
 
@@ -105,63 +116,100 @@ export function ImageUploader({
     return () => {
       document.removeEventListener('paste', handleGlobalPaste);
     };
-  }, [handlePaste]);
+  }, [handleContainerPaste, isPasteTarget]);
 
   return (
-    <div ref={containerRef} className="space-y-3" tabIndex={0}>
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-foreground">{label}</span>
-        {required && <span className="text-xs text-destructive">*必填</span>}
-        {!required && <span className="text-xs text-muted-foreground">可选</span>}
-      </div>
+    <div
+      ref={containerRef}
+      className="rounded-[22px] border border-[#e8e0d6] bg-[#fdfdfb] p-[18px]"
+      tabIndex={0}
+      onFocus={() => setIsPasteTarget(true)}
+      onBlur={() => setIsPasteTarget(false)}
+      onMouseEnter={() => setIsPasteTarget(true)}
+      onMouseLeave={() => setIsPasteTarget(false)}
+      onPaste={handleContainerPaste}
+      onKeyDown={(event) => {
+        if ((event.key === 'Enter' || event.key === ' ') && !preview) {
+          event.preventDefault();
+          handleOpenFileDialog();
+        }
+      }}
+    >
+      <div className="space-y-3">
+        <div className="flex items-start gap-2">
+          <WorkbenchIconBadge icon={Icon} />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-[#242930]">{label}</span>
+              {required ? (
+                <span className="text-xs text-[#db574d]">*必填</span>
+              ) : (
+                <span className="text-xs text-[#737580]">可选</span>
+              )}
+            </div>
+          </div>
+        </div>
 
-      {isCompressing ? (
-        <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-xl border-2 border-primary/30 bg-card">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">正在压缩图片...</p>
-        </div>
-      ) : preview ? (
-        <div className="group relative overflow-hidden rounded-xl border-2 border-primary/30 bg-card">
-          <img
-            src={preview}
-            alt="Preview"
-            className="h-40 w-full object-contain p-2"
-          />
-          <div className="absolute inset-0 flex items-center justify-center bg-background/80 opacity-0 transition-opacity group-hover:opacity-100">
-            <Button variant="destructive" size="sm" onClick={handleClear}>
-              <X className="mr-1 h-4 w-4" />
-              移除
-            </Button>
-          </div>
-          <div className="absolute bottom-2 left-2 right-2">
-            <p className="truncate rounded bg-background/80 px-2 py-1 text-xs text-muted-foreground">
-              {image?.name}
-            </p>
-          </div>
-        </div>
-      ) : (
         <div
-          className={cn(
-            'group relative flex h-40 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed transition-all',
-            'border-border bg-card hover:border-primary/50 hover:bg-secondary/50'
-          )}
+          className={`group relative overflow-hidden rounded-[18px] border border-[#e8e0d6] bg-white p-[14px] ${
+            !preview ? 'cursor-pointer hover:border-[#d8ccbc]' : ''
+          }`}
+          onClick={() => {
+            if (!preview) handleOpenFileDialog();
+          }}
         >
           <input
+            ref={inputRef}
             type="file"
             accept="image/*"
             onChange={handleInputChange}
-            className="absolute inset-0 cursor-pointer opacity-0"
+            className="sr-only"
           />
-          <div className="flex gap-2">
-            <Upload className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
-            <Clipboard className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-medium text-foreground">点击上传或 Ctrl+V 粘贴</p>
-            <p className="text-xs text-muted-foreground">支持 JPG, PNG, WebP（自动压缩）</p>
-          </div>
+
+          {isCompressing ? (
+            <div className="flex h-[100px] items-center justify-center">
+              <div className="flex items-center gap-3 text-[#737580]">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="text-sm">正在压缩图片...</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="relative overflow-hidden rounded-[14px] bg-[#f5f1e7]">
+                {preview ? (
+                  <img src={preview} alt="图片预览" className="h-[100px] w-full object-contain" />
+                ) : (
+                  <div className="flex h-[100px] items-center justify-center">
+                    <ImageIcon className="h-6 w-6 text-[#c8bfa8]" strokeWidth={1.7} />
+                  </div>
+                )}
+              </div>
+
+              {preview ? (
+                <div className="absolute right-5 top-5">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleClear();
+                    }}
+                    className="h-8 w-8 rounded-full border-[#e8e0d6] bg-white text-[#5b5650] shadow-sm hover:bg-[#fbfaf8]"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : null}
+
+              <div className="mt-[10px] space-y-1">
+                <p className="text-[13px] font-medium text-[#242930]">点击上传或 Ctrl+V 粘贴</p>
+                <p className="text-xs text-[#737580]">支持 JPG, PNG, WebP（自动压缩）</p>
+                {image?.name ? <p className="truncate text-xs text-[#737580]">{image.name}</p> : null}
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

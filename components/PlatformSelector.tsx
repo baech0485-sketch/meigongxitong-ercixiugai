@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@/lib/utils';
 import type { Platform } from '@/types';
+import { WorkbenchChoiceButton } from '@/components/workbench-primitives';
 
 interface PlatformSelectorProps {
   value: Platform | null;
@@ -25,30 +25,21 @@ const platforms: { platform: Platform; label: string; color: string; bgColor: st
 
 export function PlatformSelector({ value, onChange }: PlatformSelectorProps) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-[10px]">
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-foreground">目标平台</span>
-        <span className="text-xs text-destructive">*必选</span>
+        <span className="text-[15px] font-bold text-[#242930]">目标平台</span>
+        <span className="text-xs text-[#db574d]">*必选</span>
       </div>
       <div className="flex gap-3">
-        {platforms.map(({ platform, label, color, bgColor }) => (
-          <button
+        {platforms.map(({ platform, label }) => (
+          <WorkbenchChoiceButton
             key={platform}
-            type="button"
             onClick={() => onChange(platform)}
-            className={cn(
-              'group relative flex-1 rounded-xl border-2 px-6 py-4 font-semibold transition-all duration-200',
-              value === platform
-                ? `${bgColor} ${color} border-transparent shadow-lg`
-                : 'border-border bg-card text-foreground hover:border-primary/50 hover:bg-secondary/50'
-            )}
+            active={value === platform}
+            className="justify-start"
           >
-            <span className="relative z-10">{label}</span>
-            {value === platform && (
-              <div className="absolute inset-0 rounded-xl opacity-20 blur-xl"
-                   style={{ background: platform === 'meituan' ? '#FBBF24' : '#F97316' }} />
-            )}
-          </button>
+            <span>{label}</span>
+          </WorkbenchChoiceButton>
         ))}
       </div>
     </div>

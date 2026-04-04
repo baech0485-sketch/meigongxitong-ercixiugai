@@ -1,11 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, RefreshCw, CheckCircle, ImageIcon, AlertCircle, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import type { LucideIcon } from 'lucide-react';
+import {
+  CheckCircle2,
+  Download,
+  Loader2,
+  AlertCircle,
+  Sparkles,
+  RefreshCw,
+} from 'lucide-react';
 import type { ImageType, Platform } from '@/types';
 import { IMAGE_SIZES, IMAGE_TYPE_LABELS, PLATFORM_LABELS } from '@/types';
 import { downloadCanvasAsImage } from '@/lib/downloadHelper';
+import { WorkbenchIconBadge, WorkbenchTag } from '@/components/workbench-primitives';
 
 interface ResultDisplayProps {
   resultImage: string | null;
@@ -25,6 +33,8 @@ export function ResultDisplay({
   onRetry,
 }: ResultDisplayProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const resolvedType = imageType ?? 'banner';
+  const resolvedPlatform = platform ?? 'meituan';
 
   const handleDownload = async () => {
     if (!resultImage || !imageType || !platform) return;
@@ -60,104 +70,71 @@ export function ResultDisplay({
     img.src = resultImage;
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <span className="text-sm font-medium text-foreground">处理中...</span>
-        <div className="flex h-64 flex-col items-center justify-center rounded-xl border-2 border-primary/20 bg-card">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
-          <p className="mt-4 text-sm text-muted-foreground">AI 正在处理图片...</p>
-          <p className="mt-1 text-xs text-muted-foreground">预计需要 10-30 秒</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 text-destructive">
-          <AlertCircle className="h-4 w-4" />
-          <span className="text-sm font-medium">处理失败</span>
-        </div>
-        <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 p-6 text-center">
-          <p className="text-sm text-destructive">{error}</p>
-          {onRetry && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRetry}
-              className="mt-4 gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              重新处理
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (resultImage && imageType && platform) {
-    const size = IMAGE_SIZES[imageType][platform];
-
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 text-green-500">
-          <CheckCircle className="h-4 w-4" />
-          <span className="text-sm font-medium">处理完成</span>
-        </div>
-        <div className="overflow-hidden rounded-xl border-2 border-primary/30 bg-card">
-          <img
-            src={resultImage}
-            alt="Result"
-            className="w-full object-contain"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="rounded bg-secondary px-2 py-1">
-            {IMAGE_TYPE_LABELS[imageType]}
-          </span>
-          <span className="rounded bg-secondary px-2 py-1">
-            {PLATFORM_LABELS[platform]}
-          </span>
-          <span className="rounded bg-secondary px-2 py-1 font-mono">
-            {size.width} × {size.height}
-          </span>
-        </div>
-        <Button
-          onClick={handleDownload}
-          disabled={isDownloading}
-          className="w-full gap-2"
-        >
-          {isDownloading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              下载中...
-            </>
-          ) : (
-            <>
-              <Download className="h-4 w-4" />
-              下载图片
-            </>
-          )}
-        </Button>
-      </div>
-    );
-  }
+  const size = IMAGE_SIZES[resolvedType][resolvedPlatform];
+  const statusIcon = error ? AlertCircle : isLoading ? Sparkles : CheckCircle2;
+  const statusText = error ? '处理失败' : isLoading ? '处理中...' : '处理完成';
 
   return (
-    <div className="space-y-4">
-      <span className="text-sm font-medium text-foreground">处理结果</span>
-      <div className="flex h-64 flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card">
-        <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
-        <p className="mt-4 text-sm text-muted-foreground">
-          处理后的图片将在此处显示
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground/60">
-          请先上传图片并点击发送请求
+    <div className="flex h-full flex-col gap-[18px]">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <StatusIcon icon={statusIcon} />
+          <span className="text-sm font-medium text-[#242930]">{statusText}</span>
+        </div>
+        <h3 className="font-serif text-[30px] font-bold text-[#242930]">处理结果</h3>
+      </div>
+
+      <div className="rounded-[24px] border border-[#e8e0d6] bg-[#fdfdfb] p-[14px]">
+        <div className="overflow-hidden rounded-[16px] bg-[#f5f1e7]">
+          {resultImage ? (
+            <img src={resultImage} alt="处理结果" className="h-[336px] w-full object-contain" />
+          ) : (
+            <div className="h-[336px] w-full" />
+          )}
+        </div>
+
+        <div className="mt-[14px] flex flex-wrap gap-2">
+          <WorkbenchTag>{IMAGE_TYPE_LABELS[resolvedType]}</WorkbenchTag>
+          <WorkbenchTag>{PLATFORM_LABELS[resolvedPlatform]}</WorkbenchTag>
+          <WorkbenchTag>{`${size.width} × ${size.height}`}</WorkbenchTag>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={error ? onRetry : handleDownload}
+        disabled={isLoading || (!error && !resultImage) || isDownloading}
+        className="flex h-[58px] items-center gap-[10px] rounded-[18px] border border-[#789ef7] bg-[#4d78ed] px-[18px] py-[14px] text-left shadow-[0_10px_24px_rgba(77,120,237,0.18)] transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <WorkbenchIconBadge
+          icon={error ? RefreshCw : isDownloading ? Loader2 : Download}
+          className="border-[#e5e0d6] bg-[#f7f5f0]"
+          iconClassName={isDownloading ? 'animate-spin text-[#5b5650]' : 'text-[#5b5650]'}
+        />
+        <span className="text-base font-bold text-white">
+          {error ? '重新处理' : isDownloading ? '下载中...' : '下载图片'}
+        </span>
+        <span className="font-mono text-base text-white">→</span>
+      </button>
+
+      <div className="rounded-[20px] border border-[#e8e0d6] bg-[#fdfdfb] p-[14px]">
+        <p className="text-sm font-bold text-[#242930]">结果展示区域</p>
+        <p className="mt-2 text-[11px] leading-5 text-[#737580]">
+          {error
+            ? error
+            : isLoading
+              ? '当前正在处理中，预计需要 10-30 秒，请耐心等待生成完成。'
+              : '当前示例展示的是“处理完成”状态。实际项目中还包含处理中、处理失败和重新处理等状态。'}
         </p>
       </div>
     </div>
+  );
+}
+
+function StatusIcon({ icon: Icon }: { icon: LucideIcon }) {
+  return (
+    <span className="inline-flex h-3 w-3 items-center justify-center text-[#5b5650]">
+      <Icon className="h-3 w-3" strokeWidth={1.8} />
+    </span>
   );
 }

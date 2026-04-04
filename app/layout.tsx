@@ -1,11 +1,26 @@
 import React from "react"
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { IBM_Plex_Mono, Noto_Sans_SC, Noto_Serif_SC } from 'next/font/google'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const notoSans = Noto_Sans_SC({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-sans-ui',
+});
+
+const notoSerif = Noto_Serif_SC({
+  subsets: ['latin'],
+  weight: ['700'],
+  variable: '--font-serif-display',
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['500'],
+  variable: '--font-mono-ui',
+});
 
 export const metadata: Metadata = {
   title: '美工图片调整系统 - AI智能图片处理工具',
@@ -37,7 +52,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className="font-sans antialiased">
+      <body className={`${notoSans.variable} ${notoSerif.variable} ${ibmPlexMono.variable} font-sans antialiased`}>
         {children}
         <Analytics />
       </body>
