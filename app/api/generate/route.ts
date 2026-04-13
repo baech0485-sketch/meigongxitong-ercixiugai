@@ -1,88 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildModelRequest } from '@/lib/generate-provider';
+import { parseModelResponse } from '@/lib/generate-parser';
+import type {
+  GenerateModelConfig,
+  GenerateRequestPayload,
+} from '@/lib/generate-contracts';
+import type { ModelKey } from '@/types';
 
-// 解析流式响应，提取图片数据
-function parseStreamResponse(responseText: string): { image: string; mimeType: string } | null {
-  try {
-    // 流式响应可能包含多个JSON对象，用换行分隔
-    const lines = responseText.split('\n').filter(line => line.trim());
-
-    for (const line of lines) {
-      try {
-        const json = JSON.parse(line);
-        // 查找包含图片的部分 - 注意使用 inlineData（驼峰命名）
-        const candidates = json.candidates || [];
-        for (const candidate of candidates) {
-          const parts = candidate?.content?.parts || [];
-          for (const part of parts) {
-            if (part.inlineData) {
-              return {
-                image: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`,
-                mimeType: part.inlineData.mimeType,
-              };
-            }
-          }
-        }
-      } catch {
-        // 单行解析失败，继续尝试下一行
-        continue;
-      }
-    }
-
-    // 尝试作为单个JSON解析
-    const json = JSON.parse(responseText);
-    const candidates = json.candidates || [];
-    for (const candidate of candidates) {
-      const parts = candidate?.content?.parts || [];
-      for (const part of parts) {
-        if (part.inlineData) {
-          return {
-            image: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`,
-            mimeType: part.inlineData.mimeType,
-          };
-        }
-      }
-    }
-
-    return null;
-  } catch (error) {
-    console.error('Parse response error:', error);
-    return null;
-  }
-}
-
-// 模型配置
-type ModelKey = 'model1' | 'model2';
-
-interface ModelConfig {
-  apiUrl: string;
-  apiKey: string;
-  model: string;
-}
-
-const MODEL_CONFIGS: Record<ModelKey, ModelConfig> = {
+const MODEL_CONFIGS: Record<ModelKey, GenerateModelConfig> = {
   model1: {
+    provider: 'gemini-stream',
     apiUrl: process.env.YUNWU_API_URL || 'https://yunwu.ai',
     apiKey: process.env.YUNWU_API_KEY || '',
     model: process.env.YUNWU_MODEL || 'gemini-3.1-flash-image-preview',
   },
   model2: {
+    provider: 'gemini-stream',
     apiUrl: process.env.VECTORENGINE_API_URL || 'https://api.vectorengine.ai',
     apiKey: process.env.VECTORENGINE_API_KEY || '',
     model: process.env.VECTORENGINE_MODEL || 'gemini-3.1-flash-image-preview',
   },
+  model3: {
+    provider: 'openai-chat',
+    apiUrl: process.env.POCKGO_API_URL || 'https://newapi.aicohere.org/v1/chat/completions',
+    apiKey: process.env.POCKGO_API_KEY || '',
+    model: process.env.POCKGO_MODEL || 'gemini-3.1-flash-image-preview',
+  },
 };
 
-// 请求体类型
-interface GenerateRequest {
-  selectedModel?: ModelKey;
-  imageType: 'product' | 'avatar' | 'banner' | 'poster';
-  platform: 'meituan' | 'taobao';
-  originalImage: string;
-  referenceImage?: string;
-  description: string;
-}
-
-// 响应体类型
 interface GenerateResponse {
   success: boolean;
   data?: {
@@ -92,11 +37,19 @@ interface GenerateResponse {
   error?: string;
 }
 
+function resolveModelKey(selectedModel?: ModelKey): ModelKey {
+  if (selectedModel === 'model2' || selectedModel === 'model3') {
+    return selectedModel;
+  }
+
+  return 'model1';
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse<GenerateResponse>> {
   try {
-    const body: GenerateRequest = await request.json();
+    const body: GenerateRequestPayload = await request.json();
     const { originalImage, referenceImage, description } = body;
-    const modelKey: ModelKey = body.selectedModel === 'model2' ? 'model2' : 'model1';
+    const modelKey = resolveModelKey(body.selectedModel);
     const modelConfig = MODEL_CONFIGS[modelKey];
 
     if (!modelConfig.apiKey) {
@@ -114,52 +67,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
       );
     }
 
-    // 构建请求parts
-    const parts: Array<{ inlineData?: { mimeType: string; data: string }; text?: string }> = [];
-
-    // 添加原图
-    const originalBase64 = originalImage.replace(/^data:image\/\w+;base64,/, '');
-    parts.push({
-      inlineData: {
-        mimeType: 'image/jpeg',
-        data: originalBase64,
-      },
+    const apiRequest = buildModelRequest(modelConfig, {
+      ...body,
+      referenceImage,
+      description,
     });
 
-    // 添加参考图（如果有）
-    if (referenceImage) {
-      const refBase64 = referenceImage.replace(/^data:image\/\w+;base64,/, '');
-      parts.push({
-        inlineData: {
-          mimeType: 'image/jpeg',
-          data: refBase64,
-        },
-      });
-    }
-
-    // 添加描述文本
-    const promptText = description || '请根据图片进行优化处理';
-    parts.push({ text: promptText });
-
-    // 构建API请求体
-    const apiRequestBody = {
-      contents: [
-        {
-          role: 'user',
-          parts,
-        },
-      ],
-    };
-
-    // 调用云雾API
-    const endpoint = `${modelConfig.apiUrl}/v1beta/models/${modelConfig.model}:streamGenerateContent?key=${modelConfig.apiKey}`;
-
-    const apiResponse = await fetch(endpoint, {
+    const apiResponse = await fetch(apiRequest.url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(apiRequestBody),
+      headers: apiRequest.headers,
+      body: apiRequest.body,
     });
 
     if (!apiResponse.ok) {
@@ -171,9 +88,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
       );
     }
 
-    // 解析响应
     const responseText = await apiResponse.text();
-    const responseData = parseStreamResponse(responseText);
+    const responseData = await parseModelResponse(modelConfig.provider, responseText);
 
     if (!responseData) {
       return NextResponse.json(
@@ -186,7 +102,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
       success: true,
       data: responseData,
     });
-
   } catch (error) {
     console.error('Generate API Error:', error);
     return NextResponse.json(

@@ -1,6 +1,6 @@
 export type ImageType = 'product' | 'avatar' | 'banner' | 'poster';
 export type Platform = 'meituan' | 'taobao';
-export type ModelKey = 'model1' | 'model2';
+export type ModelKey = 'model1' | 'model2' | 'model3';
 
 export interface AppState {
   imageType: ImageType | null;
@@ -50,4 +50,5 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
 export const MODEL_LABELS: Record<ModelKey, string> = {
   model1: '模型1（云雾）',
   model2: '模型2（VectorEngine）',
+  model3: '模型3（pockgo）',
 };

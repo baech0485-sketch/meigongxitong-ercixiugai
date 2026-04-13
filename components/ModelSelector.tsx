@@ -11,7 +11,7 @@ interface ModelSelectorProps {
   onChange: (model: ModelKey) => void;
 }
 
-const models: ModelKey[] = ['model1', 'model2'];
+const models: ModelKey[] = ['model1', 'model2', 'model3'];
 
 export function ModelSelector({ value, onChange }: ModelSelectorProps) {
   return (
@@ -21,7 +21,7 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
         <span className="text-base font-bold text-[#242930]">AI模型</span>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {models.map((model) => (
           <button
             key={model}
