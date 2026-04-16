@@ -10,12 +10,16 @@ export interface GenerateRequest {
   description: string;
 }
 
+export interface GenerateResultData {
+  image: string;
+  mimeType: string;
+  ossUrl?: string;
+  storage: 'inline' | 'oss';
+}
+
 export interface GenerateResponse {
   success: boolean;
-  data?: {
-    image: string;
-    mimeType: string;
-  };
+  data?: GenerateResultData;
   error?: string;
 }
 

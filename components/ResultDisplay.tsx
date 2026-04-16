@@ -17,6 +17,8 @@ import { WorkbenchIconBadge, WorkbenchTag } from '@/components/workbench-primiti
 
 interface ResultDisplayProps {
   resultImage: string | null;
+  resultOssUrl?: string | null;
+  resultStorage?: 'inline' | 'oss' | null;
   isLoading: boolean;
   error: string | null;
   imageType: ImageType | null;
@@ -26,6 +28,8 @@ interface ResultDisplayProps {
 
 export function ResultDisplay({
   resultImage,
+  resultOssUrl,
+  resultStorage,
   isLoading,
   error,
   imageType,
@@ -97,7 +101,27 @@ export function ResultDisplay({
           <WorkbenchTag>{IMAGE_TYPE_LABELS[resolvedType]}</WorkbenchTag>
           <WorkbenchTag>{PLATFORM_LABELS[resolvedPlatform]}</WorkbenchTag>
           <WorkbenchTag>{`${size.width} × ${size.height}`}</WorkbenchTag>
+          {resultStorage ? (
+            <WorkbenchTag tone={resultStorage === 'oss' ? 'blue' : 'neutral'}>
+              {resultStorage === 'oss' ? '阿里云OSS' : '内联返回'}
+            </WorkbenchTag>
+          ) : null}
         </div>
+
+        {resultOssUrl ? (
+          <div className="mt-3 rounded-[14px] border border-[#e8e0d6] bg-white px-3 py-3">
+            <p className="text-[11px] font-medium text-[#5b5650]">OSS 图片地址</p>
+            <a
+              href={resultOssUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 block truncate text-xs text-[#4d78ed] underline-offset-2 hover:underline"
+              title={resultOssUrl}
+            >
+              {resultOssUrl}
+            </a>
+          </div>
+        ) : null}
       </div>
 
       <button

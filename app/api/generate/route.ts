@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildModelRequest } from '@/lib/generate-provider';
 import { parseModelResponse } from '@/lib/generate-parser';
+import { isOssConfigured, uploadGeneratedImageToOSS } from '@/lib/oss-storage';
 import type {
   GenerateModelConfig,
   GenerateRequestPayload,
 } from '@/lib/generate-contracts';
 import type { ModelKey } from '@/types';
+
+export const runtime = 'nodejs';
 
 const MODEL_CONFIGS: Record<ModelKey, GenerateModelConfig> = {
   model1: {
@@ -33,6 +36,8 @@ interface GenerateResponse {
   data?: {
     image: string;
     mimeType: string;
+    ossUrl?: string;
+    storage: 'inline' | 'oss';
   };
   error?: string;
 }
@@ -98,9 +103,36 @@ export async function POST(request: NextRequest): Promise<NextResponse<GenerateR
       );
     }
 
+    let finalImage = responseData.image;
+    let finalMimeType = responseData.mimeType;
+    let ossUrl: string | undefined;
+    let storage: 'inline' | 'oss' = 'inline';
+
+    if (isOssConfigured()) {
+      try {
+        const uploadedImage = await uploadGeneratedImageToOSS({
+          image: responseData.image,
+          mimeType: responseData.mimeType,
+          fallbackFilename: `${modelKey}-${body.imageType}-${body.platform}-${Date.now()}`,
+        });
+
+        finalImage = uploadedImage.url;
+        finalMimeType = uploadedImage.mimeType;
+        ossUrl = uploadedImage.url;
+        storage = 'oss';
+      } catch (uploadError) {
+        console.error('OSS Upload Error:', uploadError);
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: responseData,
+      data: {
+        image: finalImage,
+        mimeType: finalMimeType,
+        ossUrl,
+        storage,
+      },
     });
   } catch (error) {
     console.error('Generate API Error:', error);

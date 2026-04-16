@@ -11,6 +11,7 @@ import { ResultDisplay } from '@/components/ResultDisplay';
 import type { ImageType, ModelKey, Platform } from '@/types';
 import { IMAGE_SIZES } from '@/types';
 import { generateImage } from '@/lib/api';
+import type { GenerateResultData } from '@/lib/api';
 
 export default function Home() {
   const [selectedModel, setSelectedModel] = useState<ModelKey>('model1');
@@ -23,7 +24,7 @@ export default function Home() {
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [resultImage, setResultImage] = useState<string | null>(null);
+  const [resultData, setResultData] = useState<GenerateResultData | null>(null);
 
   const resolvedType = imageType ?? 'banner';
   const resolvedPlatform = platform ?? 'meituan';
@@ -57,12 +58,14 @@ export default function Home() {
       });
 
       if (response.success && response.data) {
-        setResultImage(response.data.image);
+        setResultData(response.data);
       } else {
+        setResultData(null);
         setError(response.error || '处理失败，请稍后重试');
       }
     } catch (submitError) {
       console.error('Submit error:', submitError);
+      setResultData(null);
       setError('网络错误，请检查网络连接后重试');
     } finally {
       setIsLoading(false);
@@ -90,7 +93,7 @@ export default function Home() {
               platform={platform}
               isLoading={isLoading}
               error={error}
-              resultImage={resultImage}
+              resultImage={resultData?.image ?? null}
             />
 
             <section className="grid gap-7 lg:grid-cols-[minmax(0,966px)_382px] lg:items-start">
@@ -154,7 +157,9 @@ export default function Home() {
 
               <div className="rounded-[30px] border border-[#e8e0d6] bg-white p-[22px] shadow-[0_10px_28px_rgba(23,18,8,0.06)] lg:h-full">
                 <ResultDisplay
-                  resultImage={resultImage}
+                  resultImage={resultData?.image ?? null}
+                  resultOssUrl={resultData?.ossUrl ?? null}
+                  resultStorage={resultData?.storage ?? null}
                   isLoading={isLoading}
                   error={error}
                   imageType={imageType}
