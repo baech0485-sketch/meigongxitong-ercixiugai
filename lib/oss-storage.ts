@@ -2,7 +2,7 @@ import OSS from 'ali-oss';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
-const DEFAULT_FOLDER = 'generated-results';
+const DEFAULT_FOLDER = 'generated';
 
 const MIME_EXTENSION_MAP: Record<string, string> = {
   'image/gif': '.gif',

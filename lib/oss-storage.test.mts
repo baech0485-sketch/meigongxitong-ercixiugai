@@ -40,13 +40,23 @@ test('从远程 URL 下载生成图片后再上传', async () => {
 
 test('按日期和扩展名生成 OSS 对象路径', () => {
   const path = buildOssObjectKey({
-    folder: 'generated-results',
+    folder: 'generated',
     extension: '.jpg',
     date: new Date('2026-04-16T08:00:00.000Z'),
     id: 'fixed-id',
   });
 
-  assert.equal(path, 'generated-results/2026-04-16/fixed-id.jpg');
+  assert.equal(path, 'generated/2026-04-16/fixed-id.jpg');
+});
+
+test('未传目录时默认写入 generated 日期目录', () => {
+  const path = buildOssObjectKey({
+    extension: '.png',
+    date: new Date('2026-04-16T08:00:00.000Z'),
+    id: 'default-id',
+  });
+
+  assert.equal(path, 'generated/2026-04-16/default-id.png');
 });
 
 test('优先使用自定义域名生成 OSS 公开地址', () => {
@@ -56,10 +66,10 @@ test('优先使用自定义域名生成 OSS 公开地址', () => {
       region: 'oss-cn-hangzhou',
       customDomain: 'https://cdn.example.com',
     },
-    'generated-results/2026-04-16/fixed-id.jpg'
+    'generated/2026-04-16/fixed-id.jpg'
   );
 
-  assert.equal(url, 'https://cdn.example.com/generated-results/2026-04-16/fixed-id.jpg');
+  assert.equal(url, 'https://cdn.example.com/generated/2026-04-16/fixed-id.jpg');
 });
 
 test('未配置自定义域名时使用默认 OSS 域名', () => {
@@ -68,11 +78,11 @@ test('未配置自定义域名时使用默认 OSS 域名', () => {
       bucket: 'demo-bucket',
       region: 'oss-cn-hangzhou',
     },
-    'generated-results/2026-04-16/fixed-id.jpg'
+    'generated/2026-04-16/fixed-id.jpg'
   );
 
   assert.equal(
     url,
-    'https://demo-bucket.oss-cn-hangzhou.aliyuncs.com/generated-results/2026-04-16/fixed-id.jpg'
+    'https://demo-bucket.oss-cn-hangzhou.aliyuncs.com/generated/2026-04-16/fixed-id.jpg'
   );
 });
