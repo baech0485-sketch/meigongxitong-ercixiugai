@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildModelRequest } from '@/lib/generate-provider';
 import { parseModelResponse } from '@/lib/generate-parser';
 import { isOssConfigured, uploadGeneratedImageToOSS } from '@/lib/oss-storage';
+import { isAuthenticated } from '@/lib/auth';
 import type {
   GenerateModelConfig,
   GenerateRequestPayload,
@@ -52,6 +53,13 @@ function resolveModelKey(selectedModel?: ModelKey): ModelKey {
 
 export async function POST(request: NextRequest): Promise<NextResponse<GenerateResponse>> {
   try {
+    if (!(await isAuthenticated())) {
+      return NextResponse.json(
+        { success: false, error: '请先登录后再使用图片处理功能' },
+        { status: 401 }
+      );
+    }
+
     const body: GenerateRequestPayload = await request.json();
     const { originalImage, referenceImage, description } = body;
     const modelKey = resolveModelKey(body.selectedModel);
